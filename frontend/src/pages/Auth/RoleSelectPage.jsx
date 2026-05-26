@@ -38,8 +38,8 @@ const roles = [
     key: 'admin',
     label: 'Admin',
     description: 'Manage users, approve events, and oversee the platform',
-    gradient: 'from-blue-500 to-indigo-600',
-    cardGradient: 'from-blue-500/20 to-indigo-600/20',
+    gradient: 'from-[#14B8A6] to-[#6EE7D8]',
+    cardGradient: 'from-[#14B8A6]/20 to-[#6EE7D8]/20',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-11 h-11 text-white" fill="none"
         viewBox="0 0 24 24" stroke="currentColor">
