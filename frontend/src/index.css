@@ -1,3 +1,82 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Admin Panel Exclusive Dark Mode Palette ──────────── */
+.admin-workspace.dark {
+  color-scheme: dark;
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+/* Card & Container Backgrounds in Admin Panel */
+.admin-workspace.dark .bg-white {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+.admin-workspace.dark .bg-slate-50,
+.admin-workspace.dark .bg-gray-50,
+.admin-workspace.dark .bg-cyan-50\/60,
+.admin-workspace.dark .bg-blue-50\/60 {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+.admin-workspace.dark .bg-teal-50\/20,
+.admin-workspace.dark .bg-teal-50 {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* Text Colors in Admin Panel */
+.admin-workspace.dark .text-slate-900,
+.admin-workspace.dark .text-slate-800,
+.admin-workspace.dark .text-gray-900,
+.admin-workspace.dark .text-gray-800,
+.admin-workspace.dark .text-\[\#1E293B\] {
+  color: #f8fafc !important;
+}
+
+.admin-workspace.dark .text-slate-700,
+.admin-workspace.dark .text-gray-700 {
+  color: #e2e8f0 !important;
+}
+
+.admin-workspace.dark .text-slate-600,
+.admin-workspace.dark .text-slate-500,
+.admin-workspace.dark .text-\[\#64748B\] {
+  color: #94a3b8 !important;
+}
+
+/* Borders in Admin Panel */
+.admin-workspace.dark .border-gray-100,
+.admin-workspace.dark .border-slate-100,
+.admin-workspace.dark .border-slate-200,
+.admin-workspace.dark .border-teal-100,
+.admin-workspace.dark .border-teal-50 {
+  border-color: #334155 !important;
+}
+
+/* Form Inputs, Selects, and Textareas in Admin Panel */
+.admin-workspace.dark input:not([type="checkbox"]):not([type="radio"]),
+.admin-workspace.dark select,
+.admin-workspace.dark textarea {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+.admin-workspace.dark input::placeholder,
+.admin-workspace.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Modals & Popups in Admin Panel */
+.admin-workspace.dark .modal-content,
+.admin-workspace.dark .dialog-content {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}

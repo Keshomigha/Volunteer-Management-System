@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './apiConfig';
 
-const API_URL = 'http://localhost:5000/api/admin';
+const API_URL = `${API_BASE_URL}/api/admin`;
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token');
@@ -72,7 +73,7 @@ export const updateSettings = async (settingsData) => {
 };
 
 export const getAuditLogs = async () => {
-  const response = await axios.get('http://localhost:5000/api/admin/logs', {
+  const response = await axios.get(`${API_BASE_URL}/api/admin/logs`, {
     headers: getAuthHeader(),
   });
   return response.data;
@@ -91,3 +92,39 @@ export const updateAdminUser = async (id, userData) => {
   });
   return response.data;
 };
+
+export const updateUserStatus = async (id, status) => {
+  const response = await axios.put(`${API_URL}/users/${id}/status`, { status }, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+};
+
+export const getOrganizations = async () => {
+  const response = await axios.get(`${API_URL}/organizations`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+};
+
+export const getOrganizationById = async (id) => {
+  const response = await axios.get(`${API_URL}/organizations/${id}`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+};
+
+export const getAdminEvents = async () => {
+  const response = await axios.get(`${API_URL}/events`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+};
+
+export const getCertificateStats = async () => {
+  const response = await axios.get(`${API_URL}/certificates/stats`, {
+    headers: getAuthHeader(),
+  });
+  return response.data;
+};
+

@@ -1,52 +1,79 @@
 import express from "express";
-
 import {
+  registerVolunteer,
+  getVolunteers,
+  getApplicationsForOrganizer,
+  updateApplicationStatus,
+  getStudentDashboardDetails,
+  getStudentSettings,
+  updateStudentSettings,
+  changePassword,
+} from "../controllers/volunteerController.js";
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
 
-registerVolunteer,
+const router = express.Router();
 
-getVolunteers,
-
-}
-
-from "../controllers/volunteerController.js";
-
-import authMiddleware
-from "../middleware/authMiddleware.js";
-
-import roleMiddleware
-from "../middleware/roleMiddleware.js";
-
-const router =
-express.Router();
-
-
-// Student joins
-
-router.post(
-"/register/:eventId",
-
-authMiddleware,
-
-roleMiddleware(
-"student"
-),
-
-registerVolunteer
+// Student dashboard stats & lists
+router.get(
+  "/student-dashboard",
+  authMiddleware,
+  roleMiddleware("student"),
+  getStudentDashboardDetails
 );
 
-
-// Organizer views
-
+// Student Settings endpoints
 router.get(
-"/event/:eventId",
+  "/settings",
+  authMiddleware,
+  roleMiddleware("student"),
+  getStudentSettings
+);
 
-authMiddleware,
+router.put(
+  "/settings",
+  authMiddleware,
+  roleMiddleware("student"),
+  updateStudentSettings
+);
 
-roleMiddleware(
-"organizer"
-),
+// Change Password endpoint
+router.put(
+  "/change-password",
+  authMiddleware,
+  changePassword
+);
 
-getVolunteers
+// Student applies for an event
+router.post(
+  "/register/:eventId",
+  authMiddleware,
+  roleMiddleware("student"),
+  registerVolunteer
+);
+
+// Organizer — all applications across their events (Applications page)
+router.get(
+  "/applications",
+  authMiddleware,
+  roleMiddleware("organizer"),
+  getApplicationsForOrganizer
+);
+
+// Organizer — approve or reject a single application
+router.patch(
+  "/applications/:id/status",
+  authMiddleware,
+  roleMiddleware("organizer"),
+  updateApplicationStatus
+);
+
+// Organizer — approved volunteers for one event (Attendance page dropdown)
+router.get(
+  "/event/:eventId",
+  authMiddleware,
+  roleMiddleware("organizer"),
+  getVolunteers
 );
 
 export default router;

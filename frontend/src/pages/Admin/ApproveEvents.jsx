@@ -1,57 +1,39 @@
 import { useState, useEffect } from 'react';
 import { 
-  CalendarCheck, CheckCircle, XCircle, Clock, MapPin, Calendar, 
-  Users, Award, Eye, ThumbsUp, ThumbsDown, X, RefreshCw, FolderOpen
+  CalendarCheck, Clock, CheckCircle, XCircle, Eye, ThumbsUp, ThumbsDown, X, FolderOpen, Calendar, MapPin
 } from 'lucide-react';
-import { 
-  getPendingEvents, 
-  approveEvent, 
-  rejectEvent 
-} from '../../services/adminService';
-
-const statusBadge = {
-  pending: {
-    bg: 'bg-amber-50 text-amber-700 border-amber-200',
-    icon: Clock,
-    label: 'Pending Approval'
-  },
-  approved: {
-    bg: 'bg-green-50 text-green-700 border-green-200',
-    icon: CheckCircle,
-    label: 'Approved'
-  },
-  rejected: {
-    bg: 'bg-red-50 text-red-700 border-red-200',
-    icon: XCircle,
-    label: 'Rejected'
-  }
-};
+import { getAdminEvents, approveEvent, rejectEvent } from '../../services/adminService';
 
 const ApproveEvents = () => {
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('pending'); // pending, approved, rejected
-  const [selectedEvent, setSelectedEvent] = useState(null); // For Details Modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('Pending Approval'); // Pending Approval, Approved, Rejected
+  const [selectedEvent, setSelectedEvent] = useState(null); // Detail modal
   const [toastMessage, setToastMessage] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const fetchEvents = async (status) => {
+  const fetchAllEvents = async () => {
     setLoading(true);
     try {
-      const data = await getPendingEvents(status);
-      setEvents(data);
+      const data = await getAdminEvents();
+      const normalized = data.map(ev => ({
+        ...ev,
+        date: ev.eventDate || ev.date || '',
+        volunteers: ev.acceptedCount !== undefined ? ev.acceptedCount : (ev.volunteers || 0),
+        maxVolunteers: ev.volunteerRequired !== undefined ? ev.volunteerRequired : (ev.maxVolunteers || 30),
+        organizer: ev.organizer || (ev.User ? ev.User.name : 'Organizer'),
+        approvalStatus: ev.approvalStatus === 'Pending' ? 'Pending Approval' : ev.approvalStatus
+      }));
+      setEvents(normalized);
     } catch (err) {
-      console.error('Error fetching events:', err);
-      setError('Failed to load events.');
+      console.error("Error loading admin events list:", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEvents(activeTab);
-  }, [activeTab]);
+    fetchAllEvents();
+  }, []);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -64,14 +46,14 @@ const ApproveEvents = () => {
     }
     try {
       await approveEvent(id);
-      setEvents(events.filter(e => e.id !== id));
-      if (isModalOpen && selectedEvent?.id === id) {
-        setIsModalOpen(false);
+      setEvents(prev => prev.map(ev => String(ev.id) === String(id) ? { ...ev, approvalStatus: 'Approved' } : ev));
+      showToast(`Event "${title}" approved successfully!`);
+      if (selectedEvent && String(selectedEvent.id) === String(id)) {
+        setSelectedEvent(prev => ({ ...prev, approvalStatus: 'Approved' }));
       }
-      showToast('Event approved successfully!');
     } catch (err) {
-      console.error('Error approving event:', err);
-      alert(err.response?.data?.message || 'Failed to approve event.');
+      console.error("Error approving event:", err);
+      alert(err.response?.data?.message || err.message || "Failed to approve event");
     }
   };
 
@@ -81,33 +63,22 @@ const ApproveEvents = () => {
     }
     try {
       await rejectEvent(id);
-      setEvents(events.filter(e => e.id !== id));
-      if (isModalOpen && selectedEvent?.id === id) {
-        setIsModalOpen(false);
+      setEvents(prev => prev.map(ev => String(ev.id) === String(id) ? { ...ev, approvalStatus: 'Rejected' } : ev));
+      showToast(`Event "${title}" rejected.`);
+      if (selectedEvent && String(selectedEvent.id) === String(id)) {
+        setSelectedEvent(prev => ({ ...prev, approvalStatus: 'Rejected' }));
       }
-      showToast('Event rejected successfully.');
     } catch (err) {
-      console.error('Error rejecting event:', err);
-      alert(err.response?.data?.message || 'Failed to reject event.');
+      console.error("Error rejecting event:", err);
+      alert(err.response?.data?.message || err.message || "Failed to reject event");
     }
   };
 
-  const handleViewDetails = (event) => {
-    setSelectedEvent(event);
-    setIsModalOpen(true);
-  };
-
-  if (loading && events.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
-      </div>
-    );
-  }
+  const filteredEvents = events.filter(ev => (ev.approvalStatus || 'Approved') === activeTab);
 
   return (
-    <div className="space-y-6">
-      {/* Toast Notification */}
+    <div className="space-y-6 text-[#1E293B]">
+      {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed top-4 right-4 z-50 bg-teal-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-bounce">
           <CheckCircle className="w-5 h-5" />
@@ -116,290 +87,222 @@ const ApproveEvents = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2">
-            <CalendarCheck className="w-8 h-8 text-teal-600" /> Event Approvals
-          </h1>
-          <p className="text-slate-500 mt-1">Review and manage events posted by club organizers.</p>
-        </div>
-        <button 
-          onClick={() => fetchEvents(activeTab)}
-          className="p-2 text-teal-600 hover:bg-teal-50 border border-teal-100 rounded-xl transition-all"
-          title="Refresh Events"
-        >
-          <RefreshCw className="w-5 h-5" />
-        </button>
+      <div>
+        <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+          <CalendarCheck className="w-8 h-8 text-teal-400" /> Event Approvals
+        </h1>
+        <p className="text-slate-400 mt-1 font-medium text-sm">Review and verify events posted by organizer clubs.</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200">
-        {[
-          { id: 'pending', label: 'Pending Approvals', count: null },
-          { id: 'approved', label: 'Approved Events', count: null },
-          { id: 'rejected', label: 'Rejected Events', count: null }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all capitalize -mb-px ${
-              activeTab === tab.id
-                ? 'border-teal-600 text-teal-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Tabs / Filter bar */}
+      <div className="bg-white rounded-2xl shadow-sm border border-teal-100 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 w-full sm:w-auto">
+          {[
+            { id: 'Pending Approval', label: 'Pending' },
+            { id: 'Approved', label: 'Approved' },
+            { id: 'Rejected', label: 'Rejected' }
+          ].map(tab => {
+            const count = events.filter(e => (e.approvalStatus || 'Approved') === tab.id).length;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 sm:flex-initial px-5 py-2 rounded-lg text-xs font-bold transition-all border-none cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'bg-white text-teal-600 shadow-sm border border-teal-50'
+                    : 'text-slate-500 hover:text-slate-800 bg-transparent'
+                }`}
+              >
+                {tab.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+        
+        <span className="text-xs font-bold text-slate-400">
+          Showing {filteredEvents.length} items
+        </span>
       </div>
 
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-2xl border border-red-200">
-          {error}
-        </div>
-      )}
-
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map(event => {
-          const badge = statusBadge[event.status] || statusBadge.pending;
-          const BadgeIcon = badge.icon;
-          const defaultImage = "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800";
-          const eventImage = event.image || defaultImage;
-
-          return (
-            <div 
-              key={event.id} 
-              className="bg-white rounded-2xl shadow-sm border border-teal-100 overflow-hidden flex flex-col hover:shadow-md hover:shadow-teal-100/30 transition-all duration-200"
-            >
-              {/* Event Cover Image */}
-              <div className="relative h-44 w-full bg-slate-100 overflow-hidden">
-                <img 
-                  src={eventImage} 
-                  alt={event.title} 
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.src = defaultImage;
-                  }}
-                />
-                <span className={`absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-md border ${badge.bg}`}>
-                  <BadgeIcon className="w-3.5 h-3.5" />
-                  {badge.label}
-                </span>
-              </div>
-
-              {/* Card Body */}
-              <div className="p-5 flex-1 flex flex-col space-y-4">
-                <div>
-                  <h3 className="font-bold text-slate-800 text-lg line-clamp-1" title={event.title}>
-                    {event.title}
-                  </h3>
-                  <p className="text-xs text-teal-600 font-semibold mt-1">
-                    By {event.User?.name || 'Rotaract Club'}
-                  </p>
-                </div>
-
-
-                <p className="text-slate-500 text-sm line-clamp-2 leading-relaxed flex-1">
-                  {event.description}
-                </p>
-
-                {/* Event Details Summary */}
-                <div className="grid grid-cols-2 gap-y-2.5 gap-x-2 pt-3 border-t border-slate-100 text-xs text-slate-600">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Calendar className="w-4 h-4 text-teal-600 flex-shrink-0" />
-                    <span className="truncate">{event.eventDate}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Clock className="w-4 h-4 text-teal-600 flex-shrink-0" />
-                    <span className="truncate">{event.time || "10:00 AM"}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 min-w-0 col-span-2">
-                    <MapPin className="w-4 h-4 text-teal-600 flex-shrink-0" />
-                    <span className="truncate">{event.location}</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 bg-teal-50/40 p-2.5 rounded-xl text-xs font-semibold text-slate-700">
-                  <div className="flex items-center gap-1.5 justify-center">
-                    <Users className="w-4 h-4 text-teal-600" />
-                    <span>{event.volunteerRequired} Max Vol.</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 justify-center border-l border-teal-100">
-                    <Award className="w-4 h-4 text-teal-600" />
-                    <span>{event.reputationPoints || 10} RP</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions Footer */}
-              <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => handleViewDetails(event)}
-                  className="flex items-center gap-1.5 text-slate-600 hover:text-slate-800 text-xs font-bold bg-white border border-slate-200 px-3 py-2 rounded-xl transition-all"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>View Details</span>
-                </button>
-
-                {event.status === 'pending' && (
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => handleReject(event.id, event.title)}
-                      className="flex items-center gap-1 text-white text-xs font-bold bg-[#EF4444] hover:bg-red-600 px-3 py-2 rounded-xl transition-all shadow-sm shadow-red-100"
-                      title="Reject Event"
-                    >
-                      <ThumbsDown className="w-3.5 h-3.5" />
-                      <span>Reject</span>
-                    </button>
-                    <button
-                      onClick={() => handleApprove(event.id, event.title)}
-                      className="flex items-center gap-1 text-white text-xs font-bold bg-[#22C55E] hover:bg-green-600 px-3 py-2 rounded-xl transition-all shadow-sm shadow-green-100"
-                      title="Approve Event"
-                    >
-                      <ThumbsUp className="w-3.5 h-3.5" />
-                      <span>Approve</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        {events.length === 0 && (
-          <div className="col-span-full text-center py-20 bg-white rounded-2xl border border-teal-100">
-            <FolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-bold">No events found</p>
-            <p className="text-xs text-slate-400 mt-1">There are currently no events in the "{activeTab}" status.</p>
+      {/* Table view */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        {loading ? (
+          <div className="text-center py-20 text-slate-400 font-bold text-sm">
+            Loading events...
+          </div>
+        ) : filteredEvents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <FolderOpen className="w-14 h-14 text-slate-200 mb-3" />
+            <p className="text-slate-400 font-bold text-sm">No events found in this category</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-700">
+              <thead>
+                <tr className="bg-teal-50/20 text-slate-500 font-bold text-xs border-b border-slate-100">
+                  <th className="px-6 py-4">Event Name</th>
+                  <th className="px-6 py-4">Organizer</th>
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 text-xs">
+                {filteredEvents.map(event => (
+                  <tr key={event.id} className="hover:bg-slate-50/50">
+                    <td className="px-6 py-4 font-bold text-slate-800">
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={event.image || `https://picsum.photos/seed/${encodeURIComponent(event.title || event.name)}/300/200`} 
+                          alt="" 
+                          className="w-12 h-8 rounded-lg object-cover bg-slate-50 flex-shrink-0"
+                          onError={e => { e.currentTarget.src = 'https://picsum.photos/seed/placeholder/300/200'; }}
+                        />
+                        <span>{event.title || event.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-indigo-500 font-semibold">{event.organizer}</td>
+                    <td className="px-6 py-4 text-slate-500">{event.date}</td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-2.5 py-0.5 rounded-full font-bold border text-[10px] ${
+                        (event.approvalStatus || 'Approved') === 'Approved'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : (event.approvalStatus || 'Approved') === 'Rejected'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {event.approvalStatus || 'Approved'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right space-x-1.5 whitespace-nowrap">
+                      <button
+                        onClick={() => setSelectedEvent(event)}
+                        className="bg-white border border-slate-200 hover:border-teal-500 hover:text-teal-600 p-1.5 rounded-lg text-slate-600 transition-all shadow-sm"
+                        title="View Details"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+ 
+                      {activeTab === 'Pending Approval' && (
+                        <>
+                          <button
+                            onClick={() => handleApprove(event.id, event.title || event.name)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white p-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border-none cursor-pointer"
+                            title="Approve Event"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleReject(event.id, event.title || event.name)}
+                            className="bg-rose-600 hover:bg-rose-700 text-white p-1.5 rounded-lg text-xs font-bold transition-all shadow-sm border-none cursor-pointer"
+                            title="Reject Event"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* DETAILS VIEW MODAL */}
-      {isModalOpen && selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-teal-100 animate-in fade-in zoom-in-95 duration-200">
-            {/* Modal Cover */}
-            <div className="relative h-60 bg-slate-100 overflow-hidden">
-              <img 
-                src={selectedEvent.image || "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800"} 
-                alt={selectedEvent.title} 
-                className="w-full h-full object-cover"
-              />
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="absolute top-4 right-4 bg-slate-950/40 hover:bg-slate-950/60 p-2 rounded-full text-white backdrop-blur-sm transition-all"
-              >
-                <X className="w-5 h-5" />
+      {/* Details modal */}
+      {selectedEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedEvent(null)} />
+          <div className="relative bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+            <div className="p-5.5 border-b border-slate-100 flex justify-between items-start">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase bg-teal-50 text-teal-700 px-2 py-0.5 rounded border border-teal-200 tracking-wider">
+                  Event proposal overview
+                </span>
+                <h3 className="text-base font-black text-slate-800 mt-2">{selectedEvent.title || selectedEvent.name}</h3>
+                <p className="text-xs font-bold text-indigo-500 mt-0.5">Proposed by: {selectedEvent.organizer}</p>
+              </div>
+              <button onClick={() => setSelectedEvent(null)} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer">
+                <X className="w-4 h-4" />
               </button>
-              
-              <span className={`absolute bottom-4 left-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-md backdrop-blur-md ${statusBadge[selectedEvent.status]?.bg || 'bg-amber-50 text-amber-700'}`}>
-                {selectedEvent.status === 'pending' && <Clock className="w-3.5 h-3.5" />}
-                {selectedEvent.status === 'approved' && <CheckCircle className="w-3.5 h-3.5" />}
-                {selectedEvent.status === 'rejected' && <XCircle className="w-3.5 h-3.5" />}
-                {statusBadge[selectedEvent.status]?.label || 'Pending Approval'}
-              </span>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-6 space-y-6">
-              <div>
-                <span className="text-xs font-bold text-teal-600 uppercase tracking-widest">
-                  Club Event Proposal
-                </span>
-                <h2 className="text-2xl font-extrabold text-slate-800 mt-1 leading-snug">
-                  {selectedEvent.title}
-                </h2>
-                <p className="text-sm text-slate-500 mt-1.5 font-medium">
-                  Organized by: <span className="text-teal-600 font-semibold">{selectedEvent.User?.name || 'Leo Club'}</span>
-                </p>
+            {/* Event Banner Image */}
+            <div className="h-44 w-full relative bg-gray-100 border-b border-slate-100">
+              <img 
+                src={selectedEvent.image || `https://picsum.photos/seed/${encodeURIComponent(selectedEvent.title || selectedEvent.name)}/600/300`} 
+                alt="" 
+                className="w-full h-full object-cover"
+                onError={e => { e.currentTarget.src = 'https://picsum.photos/seed/placeholder/600/300'; }}
+              />
+              <div className="absolute top-3 left-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white text-[9px] font-extrabold px-2.5 py-1 rounded shadow">
+                {selectedEvent.category || 'General'}
               </div>
+            </div>
 
-              {/* Info Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-teal-50/30 rounded-xl border border-teal-50">
-                <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date</span>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                    <Calendar className="w-4 h-4 text-teal-600" />
-                    <span>{selectedEvent.eventDate}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1 border-l border-slate-200/50 pl-3">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Time</span>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                    <Clock className="w-4 h-4 text-teal-600" />
-                    <span>{selectedEvent.time || "10:00 AM"}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1 border-l border-slate-200/50 pl-3">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Reputation</span>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                    <Award className="w-4 h-4 text-teal-600" />
-                    <span>{selectedEvent.reputationPoints || 10} Points</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1 border-l border-slate-200/50 pl-3">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Volunteers</span>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                    <Users className="w-4 h-4 text-teal-600" />
-                    <span>{selectedEvent.volunteerRequired} Max</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Location */}
-              <div className="space-y-1.5">
-                <span className="text-xs font-semibold text-slate-500 flex items-center gap-1">
-                  <MapPin className="w-4 h-4 text-teal-600" /> Location / Venue
-                </span>
-                <p className="text-sm font-semibold text-slate-800 pl-5">
-                  {selectedEvent.location}
-                </p>
-              </div>
-
-              {/* Description */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-1">
-                  Event Description
-                </h4>
-                <p className="text-sm text-slate-600 leading-relaxed font-medium whitespace-pre-line max-h-44 overflow-y-auto pr-2">
+            <div className="p-5.5 space-y-4 text-xs font-medium">
+              <div className="space-y-1 text-slate-600">
+                <span className="text-[10px] font-bold uppercase text-slate-400">Description</span>
+                <p className="bg-slate-50 border border-slate-100 p-3 rounded-lg leading-relaxed text-slate-600">
                   {selectedEvent.description}
                 </p>
               </div>
 
-              {/* Footer Actions */}
-              <div className="pt-5 border-t border-slate-100 flex items-center justify-between">
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 transition-all"
-                >
-                  Close Window
-                </button>
-
-                {selectedEvent.status === 'pending' && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleReject(selectedEvent.id, selectedEvent.title)}
-                      className="flex items-center gap-1.5 text-white text-xs font-bold bg-[#EF4444] hover:bg-red-600 px-4 py-2.5 rounded-xl transition-all shadow-sm"
-                    >
-                      <ThumbsDown className="w-4 h-4" />
-                      <span>Reject Event</span>
-                    </button>
-                    <button
-                      onClick={() => handleApprove(selectedEvent.id, selectedEvent.title)}
-                      className="flex items-center gap-1.5 text-white text-xs font-bold bg-[#22C55E] hover:bg-green-600 px-4 py-2.5 rounded-xl transition-all shadow-sm"
-                    >
-                      <ThumbsUp className="w-4 h-4" />
-                      <span>Approve Event</span>
-                    </button>
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-1 text-slate-600">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Proposed Date</span>
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                    <Calendar className="w-4 h-4 text-teal-600" />
+                    <span>{selectedEvent.date}</span>
                   </div>
-                )}
+                </div>
+                <div className="flex-1 space-y-1 text-slate-600">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Location</span>
+                  <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                    <MapPin className="w-4 h-4 text-teal-600" />
+                    <span className="truncate" title={selectedEvent.location}>{selectedEvent.location}</span>
+                  </div>
+                </div>
               </div>
+
+              <div className="flex justify-between items-center pt-2 border-t border-slate-100 text-slate-600">
+                <span>Approval Status:</span>
+                <span className={`px-2 py-0.5 rounded font-bold border text-[10px] ${
+                  (selectedEvent.approvalStatus || 'Approved') === 'Approved'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : (selectedEvent.approvalStatus || 'Approved') === 'Rejected'
+                    ? 'bg-rose-50 text-rose-700 border-rose-200'
+                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                }`}>
+                  {selectedEvent.approvalStatus || 'Approved'}
+                </span>
+              </div>
+            </div>
+ 
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+              {(selectedEvent.approvalStatus || 'Approved') === 'Pending Approval' && (
+                <>
+                  <button 
+                    onClick={() => handleApprove(selectedEvent.id, selectedEvent.title || selectedEvent.name)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs border-none cursor-pointer"
+                  >
+                    Approve Event
+                  </button>
+                  <button 
+                    onClick={() => handleReject(selectedEvent.id, selectedEvent.title || selectedEvent.name)}
+                    className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2 rounded-xl text-xs border-none cursor-pointer"
+                  >
+                    Reject Proposals
+                  </button>
+                </>
+              )}
+              <button 
+                onClick={() => setSelectedEvent(null)}
+                className="bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-bold px-4 py-2 rounded-xl text-xs cursor-pointer"
+              >
+                Close View
+              </button>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../config/db.js";
+import sequelize from "../config/database.js";
 import User from "./userModel.js";
 
 const StudentProfile = sequelize.define(
@@ -30,6 +30,57 @@ const StudentProfile = sequelize.define(
     faculty: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    bio: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    university: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      defaultValue: "State University",
+    },
+    degreeProgram: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    yearOfStudy: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    avatar: {
+      type: DataTypes.TEXT("long"),
+      allowNull: true,
+    },
+    preferences: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+    },
+    availability: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: { days: [], times: [] },
+    },
+    notifications: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {
+        eventRecommendations: true,
+        applicationUpdates: true,
+        eventReminders: true,
+        certificateNotifications: true,
+        reputationPointUpdates: true,
+      },
+    },
+    privacy: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {
+        showProfileOnLeaderboard: true,
+        allowOrganizersToViewSkills: true,
+        receivePersonalizedRecommendations: true,
+      },
     },
     skills: {
       type: DataTypes.JSON,

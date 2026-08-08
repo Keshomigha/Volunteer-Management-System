@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import sequelize from "../config/db.js";
+import sequelize from "../config/database.js";
 import User from "./userModel.js";
 
 const Event = sequelize.define("Event", {
@@ -24,6 +24,16 @@ const Event = sequelize.define("Event", {
     allowNull: false,
   },
 
+  eventType: {
+    type: DataTypes.ENUM("In-Person", "Online"),
+    defaultValue: "In-Person",
+  },
+
+  meetingLink: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+
   eventDate: {
     type: DataTypes.DATEONLY,
     allowNull: false,
@@ -33,14 +43,23 @@ const Event = sequelize.define("Event", {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  status: {
-    type: DataTypes.ENUM("pending", "approved", "rejected"),
-    defaultValue: "pending",
+  approvalStatus: {
+    type: DataTypes.ENUM("Pending", "Approved", "Rejected"),
+    defaultValue: "Pending",
   },
 
-  
+  status: {
+    type: DataTypes.ENUM("Draft", "Upcoming", "Active", "Completed", "Archived"),
+    defaultValue: "Upcoming",
+  },
+
+  acceptedCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+
   image: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT("long"),
     allowNull: true,
     defaultValue: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800",
   },
@@ -54,8 +73,15 @@ const Event = sequelize.define("Event", {
     defaultValue: 10,
   },
 
+  category: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 
-
+  skills: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
 });
 
 /*

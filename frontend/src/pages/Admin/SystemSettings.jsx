@@ -1,107 +1,111 @@
 import { useState, useEffect } from 'react';
 import { 
-  Settings, Shield, Bell, Save, CheckCircle, AlertTriangle, 
-  HelpCircle, Monitor, Laptop, Server, AppWindow, Mail, Sparkles
+  Settings, Shield, Bell, Save, Monitor, AppWindow, Mail, Sparkles, CheckCircle
 } from 'lucide-react';
 import { getSettings, updateSettings } from '../../services/adminService';
 
 const SystemSettings = () => {
   const [formData, setFormData] = useState({
     siteName: 'VolunteerHub',
-    adminEmail: 'admin@gmail.com',
-    maxEventsPerClub: 10,
+    adminEmail: 'admin@volunteerhub.com',
     eventApprovalRequired: true,
     notificationsEnabled: true,
-    darkModeEnabled: false,
     registrationOpen: true,
+    darkModeEnabled: false,
     maintenanceMode: false,
   });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+
+  const [toastMessage, setToastMessage] = useState('');
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const fetchSettings = async () => {
+    const fetchSettingsData = async () => {
       try {
         const data = await getSettings();
-        if (data) {
-          setFormData({
-            siteName: data.siteName ?? 'VolunteerHub',
-            adminEmail: data.adminEmail ?? 'admin@gmail.com',
-            maxEventsPerClub: data.maxEventsPerClub ?? 10,
-            eventApprovalRequired: !!data.eventApprovalRequired,
-            notificationsEnabled: !!data.notificationsEnabled,
-            darkModeEnabled: !!data.darkModeEnabled,
-            registrationOpen: !!data.registrationOpen,
-            maintenanceMode: !!data.maintenanceMode,
-          });
-        }
+        const isDark = data.darkModeEnabled !== undefined ? data.darkModeEnabled : (localStorage.getItem('darkMode') === 'true');
+        setFormData({
+          siteName: data.siteName || 'VolunteerHub',
+          adminEmail: data.adminEmail || 'admin@volunteerhub.com',
+          eventApprovalRequired: data.eventApprovalRequired !== undefined ? data.eventApprovalRequired : true,
+          notificationsEnabled: data.notificationsEnabled !== undefined ? data.notificationsEnabled : true,
+          registrationOpen: data.registrationOpen !== undefined ? data.registrationOpen : true,
+          darkModeEnabled: isDark,
+          maintenanceMode: data.maintenanceMode !== undefined ? data.maintenanceMode : false,
+        });
+
+        localStorage.setItem('darkMode', String(isDark));
+        window.dispatchEvent(new Event('admin-theme-change'));
       } catch (err) {
-        console.error('Error fetching settings:', err);
-        setError('Failed to load system settings from the server.');
-      } finally {
-        setLoading(false);
+        console.error("Error fetching system settings:", err);
       }
     };
-    fetchSettings();
+    fetchSettingsData();
   }, []);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const val = type === 'checkbox' ? checked : value;
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : type === 'number' ? parseInt(value) || 0 : value,
+      [name]: val,
     }));
+
+    if (name === 'darkModeEnabled') {
+      localStorage.setItem('darkMode', String(val));
+      window.dispatchEvent(new Event('admin-theme-change'));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess(false);
     try {
       await updateSettings(formData);
       setSuccess(true);
-      // Optional: Add styling flag or trigger local dark mode reload if relevant
-      if (formData.darkModeEnabled) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+      showToast('System configuration saved successfully!');
+      
+      localStorage.setItem('darkMode', String(formData.darkModeEnabled));
+      window.dispatchEvent(new Event('admin-theme-change'));
+      
       setTimeout(() => setSuccess(false), 4000);
     } catch (err) {
-      console.error('Error saving settings:', err);
-      setError(err.response?.data?.message || 'Failed to save system settings.');
+      console.error("Error saving system settings:", err);
+      alert(err.response?.data?.message || err.message || "Failed to save settings");
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-[#1E293B]">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-teal-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-bounce">
+          <CheckCircle className="w-5 h-5 text-white" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2">
-          <Settings className="w-8 h-8 text-teal-600" /> System Settings
+        <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+          <Settings className="w-8 h-8 text-teal-400" /> System Settings
         </h1>
-        <p className="text-slate-500 mt-1">Configure global application variables, authentication defaults, and system toggles.</p>
+        <p className="text-slate-400 mt-1 font-medium text-sm">Configure application variables, notification defaults, and system toggles.</p>
       </div>
 
-      {/* Main Settings Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Help & Info Column */}
+        {/* Help Panel */}
         <div className="space-y-6 lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-sm border border-teal-100 p-5 space-y-4">
             <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm uppercase tracking-wider">
               <Sparkles className="w-5 h-5 text-teal-600" /> Settings Assistance
             </h3>
-            <p className="text-slate-500 text-xs leading-relaxed">
-              These variables affect the volunteer hub's business rules and database storage globally. Keep them updated to ensure smooth club activities.
+            <p className="text-slate-500 text-xs leading-relaxed font-semibold">
+              These variables affect the volunteer hub's business rules globally. Keep them updated to ensure smooth club activities.
             </p>
             <div className="space-y-3.5 pt-2">
               <div className="flex gap-3 text-xs text-slate-600">
@@ -129,7 +133,7 @@ const SystemSettings = () => {
           </div>
         </div>
 
-        {/* Settings Form Column */}
+        {/* Settings Form */}
         <div className="lg:col-span-2">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-white rounded-2xl shadow-sm border border-teal-100 p-6 space-y-6">
@@ -137,28 +141,21 @@ const SystemSettings = () => {
                 <Settings className="w-5 h-5 text-teal-600" /> Platform Configuration Form
               </h2>
 
-              {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-200 text-xs flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-
               {success && (
-                <div className="bg-green-50 text-green-700 p-4 rounded-xl border border-green-200 text-xs flex items-center gap-2 animate-pulse">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>System settings updated successfully! Database records synchronized.</span>
+                <div className="bg-green-50 text-green-700 p-4 rounded-xl border border-green-200 text-xs flex items-center gap-2 animate-pulse font-bold">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0 text-green-700" />
+                  <span>System settings updated successfully! Local records synchronized.</span>
                 </div>
               )}
 
-              <div className="space-y-5">
-                {/* Site Name Input */}
+              <div className="space-y-5 text-xs">
+                {/* Platform Name */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                  <label className="block font-bold text-slate-600 uppercase tracking-wider mb-1.5">
                     Platform Name
                   </label>
                   <div className="flex items-center bg-slate-50 border border-teal-100 rounded-xl focus-within:border-teal-400 transition-colors">
-                    <span className="pl-4 pr-1 text-slate-400 text-sm font-semibold flex items-center">
+                    <span className="pl-4 pr-1 text-slate-400 font-semibold flex items-center">
                       <AppWindow className="w-4 h-4 text-teal-600" />
                     </span>
                     <input
@@ -168,18 +165,18 @@ const SystemSettings = () => {
                       onChange={handleChange}
                       required
                       placeholder="e.g. VolunteerHub"
-                      className="w-full bg-transparent border-none outline-none px-3 py-2.5 text-sm text-slate-700"
+                      className="w-full bg-transparent border-none outline-none px-3 py-2.5 text-slate-700 font-bold"
                     />
                   </div>
                 </div>
 
-                {/* Admin Email Input */}
+                {/* Admin Email */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
+                  <label className="block font-bold text-slate-600 uppercase tracking-wider mb-1.5">
                     Admin Email Address
                   </label>
                   <div className="flex items-center bg-slate-50 border border-teal-100 rounded-xl focus-within:border-teal-400 transition-colors">
-                    <span className="pl-4 pr-1 text-slate-400 text-sm font-semibold flex items-center">
+                    <span className="pl-4 pr-1 text-slate-400 font-semibold flex items-center">
                       <Mail className="w-4 h-4 text-teal-600" />
                     </span>
                     <input
@@ -188,42 +185,21 @@ const SystemSettings = () => {
                       value={formData.adminEmail}
                       onChange={handleChange}
                       required
-                      placeholder="e.g. admin@gmail.com"
-                      className="w-full bg-transparent border-none outline-none px-3 py-2.5 text-sm text-slate-700"
+                      placeholder="e.g. admin@volunteerhub.com"
+                      className="w-full bg-transparent border-none outline-none px-3 py-2.5 text-slate-700 font-bold"
                     />
                   </div>
                 </div>
 
-                {/* Max Events Per Club Input */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">
-                    Max Events Per Club / Organizer
-                  </label>
-                  <div className="flex items-center bg-slate-50 border border-teal-100 rounded-xl focus-within:border-teal-400 transition-colors">
-                    <span className="pl-4 pr-1 text-slate-400 text-sm font-semibold flex items-center">
-                      <Server className="w-4 h-4 text-teal-600" />
-                    </span>
-                    <input
-                      type="number"
-                      name="maxEventsPerClub"
-                      value={formData.maxEventsPerClub}
-                      onChange={handleChange}
-                      min="1"
-                      required
-                      className="w-full bg-transparent border-none outline-none px-3 py-2.5 text-sm text-slate-700"
-                    />
-                  </div>
-                </div>
-
-                {/* Toggle Settings Grid */}
+                {/* Toggles Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  {/* Event Approval Toggle */}
+                  {/* Require Event Approval */}
                   <div className="flex items-center justify-between p-4 bg-teal-50/20 rounded-xl border border-teal-100">
                     <div className="space-y-0.5 pr-2">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                      <label className="block font-bold text-slate-700 uppercase tracking-wide">
                         Require Event Approval
                       </label>
-                      <span className="text-[10px] text-slate-400 leading-tight block">
+                      <span className="text-[10px] text-slate-400 leading-tight block font-semibold">
                         Organizer events must be checked by Admins before listing.
                       </span>
                     </div>
@@ -239,13 +215,13 @@ const SystemSettings = () => {
                     </label>
                   </div>
 
-                  {/* Notification Toggle */}
+                  {/* Enable Notifications */}
                   <div className="flex items-center justify-between p-4 bg-teal-50/20 rounded-xl border border-teal-100">
                     <div className="space-y-0.5 pr-2">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                      <label className="block font-bold text-slate-700 uppercase tracking-wide">
                         Enable Notifications
                       </label>
-                      <span className="text-[10px] text-slate-400 leading-tight block">
+                      <span className="text-[10px] text-slate-400 leading-tight block font-semibold">
                         Allow notifications for event submissions, signups, etc.
                       </span>
                     </div>
@@ -261,35 +237,13 @@ const SystemSettings = () => {
                     </label>
                   </div>
 
-                  {/* Dark Mode Toggle */}
+                  {/* Open Registrations */}
                   <div className="flex items-center justify-between p-4 bg-teal-50/20 rounded-xl border border-teal-100">
                     <div className="space-y-0.5 pr-2">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-                        Dark Mode Support
-                      </label>
-                      <span className="text-[10px] text-slate-400 leading-tight block">
-                        Enable dark mode palette across UI and dashboards.
-                      </span>
-                    </div>
-                    <label className="relative inline-flex inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="darkModeEnabled"
-                        checked={formData.darkModeEnabled}
-                        onChange={handleChange}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
-                    </label>
-                  </div>
-
-                  {/* Registration Open Toggle */}
-                  <div className="flex items-center justify-between p-4 bg-teal-50/20 rounded-xl border border-teal-100">
-                    <div className="space-y-0.5 pr-2">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                      <label className="block font-bold text-slate-700 uppercase tracking-wide">
                         Open Registrations
                       </label>
-                      <span className="text-[10px] text-slate-400 leading-tight block">
+                      <span className="text-[10px] text-slate-400 leading-tight block font-semibold">
                         Allow new students/organizers to create active accounts.
                       </span>
                     </div>
@@ -305,13 +259,35 @@ const SystemSettings = () => {
                     </label>
                   </div>
 
-                  {/* Maintenance Mode Toggle */}
+                  {/* Dark Mode Support */}
+                  <div className="flex items-center justify-between p-4 bg-teal-50/20 rounded-xl border border-teal-100">
+                    <div className="space-y-0.5 pr-2">
+                      <label className="block font-bold text-slate-700 uppercase tracking-wide">
+                        Dark Mode Support
+                      </label>
+                      <span className="text-[10px] text-slate-400 leading-tight block font-semibold">
+                        Enable dark mode palette across UI and dashboards.
+                      </span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="darkModeEnabled"
+                        checked={formData.darkModeEnabled}
+                        onChange={handleChange}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                    </label>
+                  </div>
+
+                  {/* Maintenance Mode */}
                   <div className="flex items-center justify-between p-4 bg-teal-50/20 rounded-xl border border-teal-100 col-span-1 md:col-span-2">
                     <div className="space-y-0.5 pr-2">
-                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                      <label className="block font-bold text-slate-700 uppercase tracking-wide">
                         Enable Maintenance Mode
                       </label>
-                      <span className="text-[10px] text-slate-400 leading-tight block">
+                      <span className="text-[10px] text-slate-400 leading-tight block font-semibold">
                         Bypasses login for non-admins and shows a "Maintenance" notification page.
                       </span>
                     </div>
@@ -329,11 +305,11 @@ const SystemSettings = () => {
                 </div>
               </div>
 
-              {/* Submit Action */}
+              {/* Submit */}
               <div className="pt-4 border-t border-slate-100 flex justify-end">
                 <button
                   type="submit"
-                  className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-cyan-500 hover:from-teal-700 hover:to-cyan-600 text-white px-5 py-2.5 rounded-2xl shadow-sm hover:shadow transition-all font-medium text-sm"
+                  className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-cyan-500 hover:from-teal-700 hover:to-cyan-600 text-white px-5 py-2.5 rounded-2xl shadow-sm hover:shadow transition-all font-bold text-xs border-none cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   <span>Save Changes</span>

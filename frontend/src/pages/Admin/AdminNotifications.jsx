@@ -1,76 +1,68 @@
 import { useState, useEffect } from 'react';
 import { 
-  Bell, CheckCheck, Trash2, RefreshCw, AlertTriangle, 
-  Info, Calendar, UserPlus, CheckCircle, Star, FolderOpen, 
-  X, Check
+  Bell, CheckCheck, Trash2, Info, Calendar, UserPlus, AlertTriangle, CheckCircle, Eye, X, Check, Sparkles
 } from 'lucide-react';
-import { 
-  getNotifications, 
-  markNotificationRead, 
-  deleteNotification 
-} from '../../services/notificationService';
+import { getAdminNotifications, markAsRead, markAllAsRead, deleteNotification } from '../../services/notificationService';
 
-// Helper to determine icon and color based on notification title/message
-const getNotificationMetadata = (title = '', message = '') => {
-  const t = title.toLowerCase();
-  const m = message.toLowerCase();
+const metaStyles = {
+  Organizer: { icon: UserPlus, color: 'text-indigo-600', bg: 'bg-indigo-50 border-indigo-100' },
+  Event: { icon: Calendar, color: 'text-cyan-600', bg: 'bg-cyan-50 border-cyan-100' },
+  Reminder: { icon: Sparkles, color: 'text-teal-600', bg: 'bg-teal-50 border-teal-100' },
+  System: { icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50 border-rose-100' }
+};
 
-  if (t.includes('event') || m.includes('event') || t.includes('approval') || m.includes('approval')) {
-    return {
-      icon: Calendar,
-      color: 'text-cyan-600',
-      bg: 'bg-cyan-50 border-cyan-100',
-      category: 'Events'
-    };
-  }
-  if (t.includes('student') || t.includes('user') || m.includes('student') || m.includes('signup') || t.includes('register')) {
-    return {
-      icon: UserPlus,
-      color: 'text-indigo-600',
-      bg: 'bg-indigo-50 border-indigo-100',
-      category: 'Users'
-    };
-  }
-  if (t.includes('alert') || t.includes('warn') || m.includes('error') || m.includes('fail') || t.includes('security')) {
-    return {
-      icon: AlertTriangle,
-      color: 'text-red-600',
-      bg: 'bg-red-50 border-red-100',
-      category: 'Security Alerts'
-    };
-  }
-  
-  // Default system notification
-  return {
-    icon: Info,
-    color: 'text-teal-600',
-    bg: 'bg-teal-50 border-teal-100',
-    category: 'System'
-  };
+const formatTime = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHrs = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHrs / 24);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins} min ago`;
+  if (diffHrs < 24) return `${diffHrs} ${diffHrs === 1 ? 'hr' : 'hrs'} ago`;
+  if (diffDays === 1) return 'Yesterday';
+  return date.toLocaleDateString();
 };
 
 const AdminNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [toastMessage, setToastMessage] = useState('');
   const [filter, setFilter] = useState('all'); // all, unread, read
+  const [toastMessage, setToastMessage] = useState('');
 
-  const fetchNotifications = async (quiet = false) => {
-    if (!quiet) setLoading(true);
+  const loadNotifications = async () => {
     try {
-      const data = await getNotifications();
-      setNotifications(data);
+      setLoading(true);
+      const data = await getAdminNotifications();
+      const normalized = data.map((n) => {
+        let type = 'Reminder';
+        const titleLower = n.title.toLowerCase();
+        if (titleLower.includes('event')) type = 'Event';
+        else if (titleLower.includes('organizer') || titleLower.includes('registration')) type = 'Organizer';
+        else if (titleLower.includes('system') || titleLower.includes('alert') || titleLower.includes('maintenance')) type = 'System';
+
+        return {
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          status: n.isRead ? 'Read' : 'Unread',
+          date: formatTime(n.createdAt),
+          type
+        };
+      });
+      setNotifications(normalized);
     } catch (err) {
-      console.error('Error fetching notifications:', err);
-      setError('Failed to load notifications.');
+      console.error("Error loading admin notifications:", err);
     } finally {
-      if (!quiet) setLoading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchNotifications();
+    loadNotifications();
   }, []);
 
   const showToast = (msg) => {
@@ -78,81 +70,74 @@ const AdminNotifications = () => {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  const handleMarkRead = async (id) => {
+  const handleMarkRead = async (id, title) => {
     try {
-      await markNotificationRead(id);
-      setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
+      await markAsRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'Read' } : n));
+      window.dispatchEvent(new Event('voms_notifications_updated'));
+      showToast(`Notification marked as read.`);
     } catch (err) {
-      console.error('Error marking notification as read:', err);
-      alert('Failed to mark notification as read.');
+      console.error("Failed to mark read:", err);
     }
   };
 
   const handleMarkAllRead = async () => {
-    const unread = notifications.filter(n => !n.isRead);
-    if (unread.length === 0) return;
+    const unreadCount = notifications.filter(n => n.status === 'Unread').length;
+    if (unreadCount === 0) return;
     try {
-      await Promise.all(unread.map(n => markNotificationRead(n.id)));
-      setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+      await markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, status: 'Read' })));
+      window.dispatchEvent(new Event('voms_notifications_updated'));
       showToast('All notifications marked as read.');
     } catch (err) {
-      console.error('Error marking all notifications as read:', err);
-      alert('Failed to mark all as read.');
+      console.error("Failed to mark all read:", err);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this notification?')) {
+  const handleDelete = async (id, title) => {
+    if (!window.confirm(`Are you sure you want to delete this notification?`)) {
       return;
     }
     try {
       await deleteNotification(id);
-      setNotifications(notifications.filter(n => n.id !== id));
-      showToast('Notification deleted.');
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      window.dispatchEvent(new Event('voms_notifications_updated'));
+      showToast('Notification deleted successfully.');
     } catch (err) {
-      console.error('Error deleting notification:', err);
-      alert('Failed to delete notification.');
+      console.error("Failed to delete notification:", err);
     }
   };
 
   const handleClearAll = async () => {
     if (notifications.length === 0) return;
-    if (!window.confirm('Are you sure you want to delete ALL notifications? This action cannot be undone.')) {
+    if (!window.confirm('Are you sure you want to delete ALL notifications?')) {
       return;
     }
     try {
       await Promise.all(notifications.map(n => deleteNotification(n.id)));
       setNotifications([]);
+      window.dispatchEvent(new Event('voms_notifications_updated'));
       showToast('All notifications cleared.');
     } catch (err) {
-      console.error('Error clearing notifications:', err);
-      alert('Failed to clear notifications.');
+      console.error("Failed to clear notifications:", err);
     }
   };
 
-  // Filter logic
+  // Filter list
   const filteredNotifications = notifications.filter(n => {
-    if (filter === 'unread') return !n.isRead;
-    if (filter === 'read') return n.isRead;
+    if (filter === 'unread') return n.status === 'Unread';
+    if (filter === 'read') return n.status === 'Read';
     return true; // all
   });
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
-
-  if (loading && notifications.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600"></div>
-      </div>
-    );
-  }
+  const unreadCount = notifications.filter(n => n.status === 'Unread').length;
 
   return (
-    <div className="space-y-6">
-      {/* Toast */}
+    <div className="space-y-6 text-[#1E293B]">
+      {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed top-4 right-4 z-50 bg-teal-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-bounce">
-          <CheckCircle className="w-5 h-5" />
+          <CheckCircle className="w-5 h-5 text-white" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -160,27 +145,18 @@ const AdminNotifications = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2">
-            <Bell className="w-8 h-8 text-teal-600" /> Notifications Center
+          <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+            <Bell className="w-8 h-8 text-teal-400" /> Notifications Center
           </h1>
-          <p className="text-slate-500 mt-1">Review system alerts, event submissions, and user activity.</p>
+          <p className="text-slate-400 mt-1 font-medium text-sm font-sans">View registration alerts, event requests, and announcements.</p>
         </div>
 
         {/* Global actions */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => fetchNotifications(true)}
-            className="flex items-center gap-1.5 bg-white border border-teal-100 text-teal-600 hover:bg-teal-50 px-3.5 py-2 rounded-2xl text-xs font-semibold shadow-sm transition-all"
-            title="Force Refresh List"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Refresh</span>
-          </button>
-          
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="flex items-center gap-1.5 bg-white border border-teal-100 text-teal-600 hover:bg-teal-50 px-3.5 py-2 rounded-2xl text-xs font-semibold shadow-sm transition-all"
+              className="flex items-center gap-1.5 bg-white border border-teal-100 text-teal-600 hover:bg-teal-50 px-3.5 py-2 rounded-2xl text-xs font-semibold shadow-sm transition-all border-none cursor-pointer"
             >
               <CheckCheck className="w-4 h-4" />
               <span>Mark all read</span>
@@ -190,7 +166,7 @@ const AdminNotifications = () => {
           {notifications.length > 0 && (
             <button
               onClick={handleClearAll}
-              className="flex items-center gap-1.5 bg-red-50 border border-red-100 text-red-600 hover:bg-red-100/70 px-3.5 py-2 rounded-2xl text-xs font-semibold shadow-sm transition-all"
+              className="flex items-center gap-1.5 bg-red-50 border border-red-105 text-red-600 hover:bg-red-100/70 px-3.5 py-2 rounded-2xl text-xs font-semibold shadow-sm transition-all border-none cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
               <span>Clear All</span>
@@ -199,10 +175,9 @@ const AdminNotifications = () => {
         </div>
       </div>
 
-      {/* Filter Tabs & Stats Bar */}
+      {/* Filter tabs */}
       <div className="bg-white rounded-2xl border border-teal-100 shadow-sm p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        {/* Tabs */}
-        <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 self-stretch sm:self-auto">
+        <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 w-full sm:w-auto">
           {[
             { id: 'all', label: 'All Alerts' },
             { id: 'unread', label: `Unread (${unreadCount})` },
@@ -211,42 +186,45 @@ const AdminNotifications = () => {
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id)}
-              className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-1 sm:flex-initial px-4 py-1.5 rounded-lg text-xs font-bold transition-all border-none cursor-pointer ${
                 filter === tab.id
                   ? 'bg-white text-teal-600 shadow-sm border border-teal-50'
-                  : 'text-slate-500 hover:text-slate-800'
+                  : 'text-slate-500 hover:text-slate-800 bg-transparent'
               }`}
             >
               {tab.label}
             </button>
           ))}
         </div>
-
-        {/* Summary text */}
+        
         <span className="text-xs font-bold text-slate-500 bg-teal-50/50 px-3 py-1.5 border border-teal-100/50 rounded-xl">
-          Total Notifications: <span className="text-teal-600">{notifications.length}</span>
+          Total: <span className="text-teal-600">{notifications.length}</span>
         </span>
       </div>
 
-      {/* Notifications List */}
+      {/* Notifications list */}
       <div className="space-y-3.5">
-        {filteredNotifications.map(notification => {
-          const meta = getNotificationMetadata(notification.title, notification.message);
+        {loading ? (
+          <div className="bg-white rounded-2xl border border-teal-100 p-20 text-center">
+            <p className="text-slate-500 font-semibold animate-pulse text-base">Loading notifications...</p>
+          </div>
+        ) : filteredNotifications.map(n => {
+          const meta = metaStyles[n.type] || metaStyles.System;
           const MetaIcon = meta.icon;
-          const isUnread = !notification.isRead;
+          const isUnread = n.status === 'Unread';
 
           return (
             <div
-              key={notification.id}
+              key={n.id}
               className={`bg-white rounded-2xl border p-4.5 flex gap-4 transition-all duration-200 hover:shadow-sm ${
                 isUnread 
                   ? 'border-teal-300 shadow-sm bg-teal-50/5' 
                   : 'border-slate-100 opacity-80'
               }`}
             >
-              {/* Category Icon */}
-              <div className={`w-11 h-11 rounded-xl border flex items-center justify-center flex-shrink-0 shadow-inner ${meta.bg}`}>
-                <MetaIcon className={`w-5.5 h-5.5 ${meta.color}`} />
+              {/* Icon indicator */}
+              <div className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 shadow-inner ${meta.bg}`}>
+                <MetaIcon className={`w-5 h-5 ${meta.color}`} />
               </div>
 
               {/* Body */}
@@ -254,33 +232,28 @@ const AdminNotifications = () => {
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                      {meta.category}
+                      {n.type}
                     </span>
                     <h3 className={`text-sm font-bold mt-0.5 ${isUnread ? 'text-slate-800' : 'text-slate-600'}`}>
-                      {notification.title}
+                      {n.title}
                     </h3>
                   </div>
 
-                  <span className="text-[11px] text-slate-400 font-medium">
-                    {new Date(notification.createdAt).toLocaleString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                  <span className="text-[10px] text-slate-400 font-bold">
+                    {n.date}
                   </span>
                 </div>
 
                 <p className="text-slate-500 text-xs leading-relaxed mt-2 pr-4 font-medium">
-                  {notification.message}
+                  {n.message}
                 </p>
 
                 {/* Inline Actions */}
                 <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-50 text-[11px] font-bold">
                   {isUnread && (
                     <button
-                      onClick={() => handleMarkRead(notification.id)}
-                      className="text-teal-600 hover:text-teal-800 flex items-center gap-1 bg-teal-50/50 hover:bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-100 transition-colors"
+                      onClick={() => handleMarkRead(n.id, n.title)}
+                      className="text-teal-600 hover:text-teal-800 flex items-center gap-1 bg-teal-50/50 hover:bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-100 transition-colors cursor-pointer animate-pulse"
                     >
                       <Check className="w-3.5 h-3.5" />
                       <span>Mark Read</span>
@@ -288,31 +261,27 @@ const AdminNotifications = () => {
                   )}
                   
                   <button
-                    onClick={() => handleDelete(notification.id)}
-                    className="text-red-500 hover:text-red-700 flex items-center gap-1 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-colors ml-auto sm:ml-0"
+                    onClick={() => handleDelete(n.id, n.title)}
+                    className="text-red-500 hover:text-red-700 flex items-center gap-1 hover:bg-red-50 px-2.5 py-1 rounded-lg transition-colors ml-auto sm:ml-0 cursor-pointer border-none bg-transparent"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete Alert</span>
+                    <span>Delete Notification</span>
                   </button>
                 </div>
               </div>
 
-              {/* Unread dot indicator */}
+              {/* Unread ping dot */}
               {isUnread && (
-                <span className="w-2.5 h-2.5 bg-teal-600 rounded-full flex-shrink-0 mt-2 self-start animate-ping" />
+                <span className="w-2.5 h-2.5 bg-teal-600 rounded-full flex-shrink-0 mt-2 self-start animate-pulse" />
               )}
             </div>
           );
         })}
 
-        {/* Empty State */}
-        {filteredNotifications.length === 0 && (
+        {!loading && filteredNotifications.length === 0 && (
           <div className="bg-white rounded-2xl border border-teal-100 p-20 text-center">
-            <FolderOpen className="w-14 h-14 text-slate-300 mx-auto mb-3" />
+            <Bell className="w-14 h-14 text-slate-200 mx-auto mb-3" />
             <p className="text-slate-500 font-bold">No notifications found</p>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-              There are currently no alerts inside the "{filter === 'all' ? 'Inbox' : filter}" view.
-            </p>
           </div>
         )}
       </div>

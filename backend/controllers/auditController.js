@@ -1,5 +1,5 @@
-import AuditLog
-from "../models/auditLogModel.js";
+import AuditLog from "../models/auditLogModel.js";
+import User from "../models/userModel.js";
 
 
 
@@ -69,10 +69,16 @@ try{
 const logs =
 await AuditLog
 .findAll({
-
+include: [
+  { model: User, as: "performedBy", attributes: ["id", "name", "email", "role"] }
+],
 order:[
 [
 "createdAt",
+"DESC"
+],
+[
+"id",
 "DESC"
 ]
 ]

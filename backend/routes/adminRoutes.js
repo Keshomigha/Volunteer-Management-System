@@ -17,10 +17,16 @@ getPendingEvents,
 approveEvent,
 rejectEvent,
 reports,
-getSettings,
-updateSettings
+updateUserStatus,
+getOrganizations,
+getOrganizationById,
+getEvents,
+getCertificateStats
 }
 from "../controllers/adminController.js";
+import { getLogs } from "../controllers/auditController.js";
+import settingsRoutes from "./settingsRoutes.js";
+import { getAdminNotifications } from "../controllers/notificationController.js";
 
 const router =
 express.Router();
@@ -69,8 +75,16 @@ router.patch(
 "/events/:id/approve",
 approveEvent
 );
+router.put(
+"/events/:id/approve",
+approveEvent
+);
 
 router.patch(
+"/events/:id/reject",
+rejectEvent
+);
+router.put(
 "/events/:id/reject",
 rejectEvent
 );
@@ -85,14 +99,24 @@ router.get(
 reports
 );
 
-router.get(
-"/settings",
-getSettings
-);
+router.use("/settings", settingsRoutes);
 
-router.put(
-"/settings",
-updateSettings
-);
+router.get("/notifications", getAdminNotifications);
+
+// User status management
+router.put("/users/:id/status", updateUserStatus);
+
+// Organization management
+router.get("/organizations", getOrganizations);
+router.get("/organizations/:id", getOrganizationById);
+
+// Event management listing
+router.get("/events", getEvents);
+
+// Audit logs
+router.get("/audit-logs", getLogs);
+
+// Certificate stats
+router.get("/certificates/stats", getCertificateStats);
 
 export default router;

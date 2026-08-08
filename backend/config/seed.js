@@ -10,6 +10,24 @@ import bcrypt from "bcryptjs";
 
 export const seedDatabase = async () => {
   try {
+    // Ensure default admin user exists
+    const defaultAdminEmail = "admin@volunteerhub.com";
+    const adminExists = await User.findOne({ where: { email: defaultAdminEmail } });
+    if (!adminExists) {
+      console.log(`Seeding default admin: ${defaultAdminEmail}`);
+      const hashedAdminPassword = await bcrypt.hash("Admin@123", 10);
+      await User.create({
+        name: "Default Admin",
+        email: defaultAdminEmail,
+        password: hashedAdminPassword,
+        role: "admin",
+        department: "Information Technology",
+        phone: "+94771234567",
+        status: "active",
+      });
+      console.log("Default admin seeded successfully.");
+    }
+
     // Check if seeding is already done
     const userCount = await User.count();
     if (userCount > 1) {
@@ -34,12 +52,7 @@ export const seedDatabase = async () => {
     });
 
     const students = [];
-    const studentData = [
-      { name: "Avishka Weerasinghe", email: "avishka@uni.lk", faculty: "Faculty of Computing", studentId: "STU100001" },
-      { name: "Dinithi Perera", email: "dinithi@uni.lk", faculty: "Faculty of Engineering", studentId: "STU100002" },
-      { name: "Kasun Mendis", email: "kasun@uni.lk", faculty: "Faculty of Business", studentId: "STU100003" },
-      { name: "Sanduni Silva", email: "sanduni@uni.lk", faculty: "Faculty of Computing", studentId: "STU100004" },
-    ];
+    const studentData = [];
 
     for (const data of studentData) {
       const u = await User.create({
@@ -61,11 +74,7 @@ export const seedDatabase = async () => {
     }
 
     const organizers = [];
-    const organizerData = [
-      { name: "Rotaract Club", email: "rotaract@uni.lk", orgName: "Rotaract Club of University" },
-      { name: "IEEE Student Branch", email: "ieee@uni.lk", orgName: "IEEE Student Branch" },
-      { name: "Leo Club", email: "leo@uni.lk", orgName: "Leo Club of University" },
-    ];
+    const organizerData = [];
 
     for (const data of organizerData) {
       const u = await User.create({
@@ -108,7 +117,8 @@ export const seedDatabase = async () => {
         time: "07:30 AM",
         volunteerRequired: 50,
         reputationPoints: 20,
-        status: "approved",
+        approvalStatus: "Approved",
+        status: "Upcoming",
         image: "https://images.unsplash.com/photo-1618477388954-7852f32655ec?w=800",
         UserId: organizers[0].id,
       },
@@ -120,7 +130,8 @@ export const seedDatabase = async () => {
         time: "09:00 AM",
         volunteerRequired: 30,
         reputationPoints: 15,
-        status: "approved",
+        approvalStatus: "Approved",
+        status: "Upcoming",
         image: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800",
         UserId: organizers[1].id,
       },
@@ -132,7 +143,8 @@ export const seedDatabase = async () => {
         time: "08:00 AM",
         volunteerRequired: 40,
         reputationPoints: 10,
-        status: "approved",
+        approvalStatus: "Approved",
+        status: "Upcoming",
         image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800",
         UserId: organizers[0].id,
       },
@@ -144,7 +156,8 @@ export const seedDatabase = async () => {
         time: "10:00 AM",
         volunteerRequired: 15,
         reputationPoints: 25,
-        status: "pending",
+        approvalStatus: "Pending",
+        status: "Upcoming",
         image: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800",
         UserId: organizers[1].id,
       },
@@ -156,7 +169,8 @@ export const seedDatabase = async () => {
         time: "04:00 PM",
         volunteerRequired: 25,
         reputationPoints: 15,
-        status: "pending",
+        approvalStatus: "Pending",
+        status: "Upcoming",
         image: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800",
         UserId: organizers[2].id,
       },
@@ -168,7 +182,8 @@ export const seedDatabase = async () => {
         time: "08:30 AM",
         volunteerRequired: 20,
         reputationPoints: 10,
-        status: "rejected",
+        approvalStatus: "Rejected",
+        status: "Upcoming",
         image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800",
         UserId: organizers[2].id,
       },
@@ -186,27 +201,7 @@ export const seedDatabase = async () => {
     await VolunteerRegistration.create({ UserId: students[2].id, EventId: events[2].id });
     await VolunteerRegistration.create({ UserId: students[3].id, EventId: events[1].id });
 
-    // 5. Seed System Notifications
-    await Notification.create({
-      title: "System Started",
-      message: "The VolunteerHub platform has been initialized and database models verified.",
-      role: "admin",
-      isRead: true,
-    });
-    await Notification.create({
-      title: "New Event Registration",
-      message: "Rotaract Club submitted 'Beach Cleanup Drive' for approval.",
-      role: "admin",
-      isRead: false,
-    });
-    await Notification.create({
-      title: "New Student Sign Up",
-      message: "Avishka Weerasinghe joined the platform as a student.",
-      role: "admin",
-      isRead: false,
-    });
-
-    // 6. Seed Audit Logs
+    // 5. Seed Audit Logs
     await AuditLog.create({
       action: "System Initialization",
       performedBy: admin.id,

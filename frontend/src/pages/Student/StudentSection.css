@@ -1,0 +1,627 @@
+/* ==========================================================================
+   VOLUNTEER MANAGEMENT SYSTEM — STUDENT SECTION ENHANCED DESIGN SYSTEM
+   ========================================================================== 
+   Provides ultra-premium minimalistic visual aesthetics, subtle ambient lighting,
+   glassmorphism, micro-animations, theme color variables, and dark mode polish
+   without changing any existing code, text, or functional behavior.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. DESIGN TOKENS & CSS CUSTOM PROPERTIES
+   -------------------------------------------------------------------------- */
+:root {
+  /* Brand Color Palette */
+  --std-primary: #2563eb;
+  --std-primary-hover: #1d4ed8;
+  --std-primary-light: #eff6ff;
+  --std-secondary: #7c3aed;
+  --std-secondary-hover: #6d28d9;
+  --std-secondary-light: #f5f3ff;
+  --std-accent: #06b6d4;
+  --std-accent-hover: #0891b2;
+  
+  /* Status Colors */
+  --std-success: #10b981;
+  --std-success-bg: #ecfdf5;
+  --std-warning: #f59e0b;
+  --std-warning-bg: #fffbeb;
+  --std-danger: #ef4444;
+  --std-danger-bg: #fef2f2;
+  --std-info: #3b82f6;
+  --std-info-bg: #eff6ff;
+
+  /* Neutral Spectrum (Light Theme) */
+  --std-bg-main: #f8fafc;
+  --std-bg-surface: #ffffff;
+  --std-bg-muted: #f1f5f9;
+  --std-border-light: #e2e8f0;
+  --std-border-subtle: #f1f5f9;
+  --std-text-heading: #0f172a;
+  --std-text-body: #334155;
+  --std-text-muted: #64748b;
+  --std-text-dim: #94a3b8;
+
+  /* Elevation Shadows & Lighting */
+  --std-shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --std-shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --std-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --std-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --std-shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.09), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --std-shadow-glow-blue: 0 0 20px -3px rgba(37, 99, 235, 0.25);
+  --std-shadow-glow-purple: 0 0 20px -3px rgba(124, 58, 237, 0.25);
+
+  /* Radius System */
+  --std-radius-sm: 0.5rem;
+  --std-radius-md: 0.75rem;
+  --std-radius-lg: 1rem;
+  --std-radius-xl: 1.25rem;
+  --std-radius-2xl: 1.5rem;
+  --std-radius-full: 9999px;
+
+  /* Transitions */
+  --std-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --std-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --std-transition-bounce: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Dark Mode CSS Tokens */
+.student-workspace.dark {
+  --std-bg-main: #0b1329;
+  --std-bg-surface: #1e293b;
+  --std-bg-muted: #0f172a;
+  --std-border-light: #334155;
+  --std-border-subtle: #1e293b;
+  --std-text-heading: #f8fafc;
+  --std-text-body: #cbd5e1;
+  --std-text-muted: #94a3b8;
+  --std-text-dim: #64748b;
+
+  --std-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --std-shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.35);
+  --std-shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.45);
+  --std-shadow-lg: 0 12px 20px -4px rgba(0, 0, 0, 0.55);
+  --std-shadow-xl: 0 25px 30px -5px rgba(0, 0, 0, 0.65);
+  --std-shadow-glow-blue: 0 0 25px -2px rgba(59, 130, 246, 0.35);
+  --std-shadow-glow-purple: 0 0 25px -2px rgba(168, 85, 247, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   2. GLOBAL STUDENT WORKSPACE STYLING & SCROLLBAR
+   -------------------------------------------------------------------------- */
+.student-workspace {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+.student-workspace ::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.student-workspace ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.student-workspace ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+.student-workspace ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+.student-workspace.dark ::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.6);
+}
+
+.student-workspace.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.8);
+}
+
+/* Text Selection Styling */
+.student-workspace ::selection {
+  background: rgba(37, 99, 235, 0.18);
+  color: var(--std-primary);
+}
+
+.student-workspace.dark ::selection {
+  background: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+/* --------------------------------------------------------------------------
+   3. CARDS, CONTAINERS & GLASSMORPHISM SURFACES
+   -------------------------------------------------------------------------- */
+.student-workspace .bg-white {
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Glassmorphism Card Style Utility */
+.std-glass-card {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+}
+
+.student-workspace.dark .std-glass-card {
+  background: rgba(30, 41, 59, 0.7) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Hover Elevation Effect */
+.std-hover-lift {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease !important;
+}
+
+.std-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--std-shadow-lg) !important;
+}
+
+/* Subtle Gradient Glow Line */
+.std-gradient-line {
+  height: 3px;
+  background: linear-gradient(90deg, #2563eb 0%, #7c3aed 50%, #06b6d4 100%);
+  border-radius: 9999px;
+}
+
+/* Accent Header Banner */
+.std-page-header {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--std-radius-2xl);
+}
+
+.std-page-header::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 250px;
+  height: 100%;
+  background: radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.student-workspace.dark .std-page-header::after {
+  background: radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+}
+
+/* --------------------------------------------------------------------------
+   4. STATS CARDS & METRIC HIGHLIGHT WIDGETS
+   -------------------------------------------------------------------------- */
+.student-workspace .bg-gradient-to-br.from-blue-500 {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.3) !important;
+}
+
+.student-workspace .bg-gradient-to-br.from-blue-500::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 60%);
+  transform: scale(0.5);
+  transition: transform 0.5s ease;
+  pointer-events: none;
+}
+
+.student-workspace .bg-gradient-to-br.from-blue-500:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.4) !important;
+}
+
+.student-workspace .bg-gradient-to-br.from-blue-500:hover::before {
+  transform: scale(1);
+}
+
+/* Stat Card Icon Wrapper */
+.student-workspace .w-11.h-11.bg-white\/20 {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.3s ease;
+}
+
+.student-workspace .bg-gradient-to-br.from-blue-500:hover .w-11.h-11.bg-white\/20 {
+  transform: rotate(6deg) scale(1.1);
+}
+
+/* --------------------------------------------------------------------------
+   5. BROWSE EVENTS & EVENT CARDS ENHANCEMENTS
+   -------------------------------------------------------------------------- */
+.student-workspace .rounded-2xl.border.border-gray-100 {
+  transition: all 0.25s ease-in-out;
+}
+
+.student-workspace .rounded-2xl.border.border-gray-100:hover {
+  border-color: rgba(37, 99, 235, 0.3) !important;
+  box-shadow: var(--std-shadow-md) !important;
+}
+
+.student-workspace.dark .rounded-2xl.border.border-gray-100:hover {
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Event Card Image Zoom */
+.student-workspace .overflow-hidden img {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.student-workspace .group:hover img {
+  transform: scale(1.06);
+}
+
+/* Category Badge Polish */
+.std-category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--std-radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--std-primary);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.student-workspace.dark .std-category-badge {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Spot Counter Progress Bar Animations */
+.student-workspace .h-full.rounded-full {
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --------------------------------------------------------------------------
+   6. APPLICATIONS & HISTORY TABLE ENHANCEMENTS
+   -------------------------------------------------------------------------- */
+.student-workspace table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.student-workspace tr {
+  transition: background-color 0.2s ease;
+}
+
+.student-workspace tbody tr:hover {
+  background-color: rgba(241, 245, 249, 0.6) !important;
+}
+
+.student-workspace.dark tbody tr:hover {
+  background-color: rgba(30, 41, 59, 0.8) !important;
+}
+
+.student-workspace th {
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Status Pill Glows */
+.std-pill-approved {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #059669 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+.student-workspace.dark .std-pill-approved {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+}
+
+.std-pill-pending {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #d97706 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+.student-workspace.dark .std-pill-pending {
+  background-color: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+}
+
+.std-pill-rejected {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+.student-workspace.dark .std-pill-rejected {
+  background-color: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. LEADERBOARD & GAMIFICATION GLOWS
+   -------------------------------------------------------------------------- */
+/* Podium Rank #1 Glow */
+.std-rank-gold {
+  background: linear-gradient(135deg, rgba(254, 240, 138, 0.3) 0%, rgba(234, 179, 8, 0.15) 100%) !important;
+  border: 1px solid rgba(234, 179, 8, 0.4) !important;
+  box-shadow: 0 0 20px -2px rgba(234, 179, 8, 0.3) !important;
+}
+
+/* Podium Rank #2 Glow */
+.std-rank-silver {
+  background: linear-gradient(135deg, rgba(241, 245, 249, 0.4) 0%, rgba(203, 213, 225, 0.2) 100%) !important;
+  border: 1px solid rgba(148, 163, 184, 0.4) !important;
+  box-shadow: 0 0 15px -2px rgba(148, 163, 184, 0.25) !important;
+}
+
+/* Podium Rank #3 Glow */
+.std-rank-bronze {
+  background: linear-gradient(135deg, rgba(254, 215, 170, 0.3) 0%, rgba(217, 119, 6, 0.15) 100%) !important;
+  border: 1px solid rgba(217, 119, 6, 0.4) !important;
+  box-shadow: 0 0 15px -2px rgba(217, 119, 6, 0.25) !important;
+}
+
+/* Crown Icon Floating Motion */
+.std-crown-icon {
+  animation: std-float-slow 3s ease-in-out infinite alternate;
+}
+
+/* --------------------------------------------------------------------------
+   8. CERTIFICATES & PREVIEW MODAL ENHANCEMENTS
+   -------------------------------------------------------------------------- */
+.std-cert-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.std-cert-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.std-cert-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--std-shadow-xl), var(--std-shadow-glow-blue) !important;
+}
+
+.student-workspace.dark .std-cert-card:hover {
+  box-shadow: var(--std-shadow-xl), var(--std-shadow-glow-purple) !important;
+}
+
+/* Certificate Seal Pulse */
+.std-cert-seal {
+  animation: std-pulse-glow 2.5s infinite alternate;
+}
+
+/* --------------------------------------------------------------------------
+   9. NOTIFICATIONS & ALERTS STYLING
+   -------------------------------------------------------------------------- */
+.std-notification-unread {
+  position: relative;
+  background-color: rgba(37, 99, 235, 0.03) !important;
+  border-left: 3.5px solid var(--std-primary) !important;
+}
+
+.student-workspace.dark .std-notification-unread {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+  border-left-color: #60a5fa !important;
+}
+
+/* Unread Pulse Dot */
+.std-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--std-primary);
+  box-shadow: 0 0 8px var(--std-primary);
+  animation: std-dot-pulse 2s infinite;
+}
+
+/* --------------------------------------------------------------------------
+   10. SETTINGS & FORM CONTROLS POLISH
+   -------------------------------------------------------------------------- */
+/* Section Card Top Border Line Accent */
+.student-workspace .h-1\.5.bg-blue-600 {
+  background: linear-gradient(90deg, #2563eb 0%, #7c3aed 100%) !important;
+}
+
+/* Input Focus Ring Transition */
+.student-workspace input:focus,
+.student-workspace select:focus,
+.student-workspace textarea:focus {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12) !important;
+}
+
+.student-workspace.dark input:focus,
+.student-workspace.dark select:focus,
+.student-workspace.dark textarea:focus {
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Toggle Switch Smooth Transition */
+.student-workspace .w-11.h-6.rounded-full {
+  transition: background-color 0.25s ease-in-out;
+}
+
+.student-workspace .w-11.h-6.rounded-full .w-5.h-5 {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Skill & Tag Pill Buttons */
+.student-workspace button.px-3\.5.py-2.rounded-xl {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.student-workspace button.px-3\.5.py-2.rounded-xl:hover {
+  transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   11. SIDEBAR NAVIGATION POLISH
+   -------------------------------------------------------------------------- */
+.student-workspace aside {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+}
+
+.student-workspace nav a {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.student-workspace nav a.bg-blue-600 {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+}
+
+.student-workspace.dark nav a.bg-blue-600 {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Active Link Glow Pill Indicator */
+.student-workspace nav a.bg-blue-600::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 15%;
+  height: 70%;
+  width: 4px;
+  background: #ffffff;
+  border-radius: 0 4px 4px 0;
+}
+
+/* --------------------------------------------------------------------------
+   12. APPLY EVENT MODAL ENHANCEMENTS
+   -------------------------------------------------------------------------- */
+.std-modal-overlay {
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: std-fade-in 0.2s ease-out;
+}
+
+.std-modal-container {
+  animation: std-modal-slide-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: var(--std-shadow-xl), 0 0 40px rgba(37, 99, 235, 0.15) !important;
+}
+
+/* --------------------------------------------------------------------------
+   13. KEYFRAME ANIMATIONS & MOTION
+   -------------------------------------------------------------------------- */
+@keyframes std-pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(37, 99, 235, 0);
+  }
+}
+
+@keyframes std-float-slow {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+}
+
+@keyframes std-dot-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+
+@keyframes std-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes std-modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes std-shimmer-sweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Loading Skeleton Shimmer Utility */
+.std-skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: std-shimmer-sweep 1.5s infinite;
+}
+
+.student-workspace.dark .std-skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: std-shimmer-sweep 1.5s infinite;
+}
+
+/* --------------------------------------------------------------------------
+   14. RESPONSIVE BREAKPOINT FINETUNING
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .student-workspace .p-4 {
+    padding: 1rem !important;
+  }
+
+  .std-page-header::after {
+    display: none;
+  }
+}
+
+@media (min-width: 1280px) {
+  .student-workspace .max-w-7xl {
+    max-width: 80rem;
+  }
+}

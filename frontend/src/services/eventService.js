@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from './apiConfig';
 
-const API_URL = 'http://localhost:5000/api/events';
+const API_URL = `${API_BASE_URL}/api/events`;
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token');
@@ -43,21 +44,18 @@ export const deleteEvent = async (id) => {
   return response.data;
 };
 
-// Register as volunteer for an event (student only)
-export const registerForEvent = async (eventId) => {
-  const response = await axios.post(
-    `http://localhost:5000/api/volunteers/register/${eventId}`,
-    {},
-    { headers: getAuthHeader() }
-  );
+// Get organizer's own events
+export const getMyEvents = async () => {
+  const response = await axios.get(`${API_URL}/my-events`, {
+    headers: getAuthHeader(),
+  });
   return response.data;
 };
 
-// Get volunteers for an event (organizer only)
-export const getEventVolunteers = async (eventId) => {
-  const response = await axios.get(
-    `http://localhost:5000/api/volunteers/event/${eventId}`,
-    { headers: getAuthHeader() }
-  );
+// Get organizer dashboard stats (organizer only)
+export const getOrganizerDashboardStats = async () => {
+  const response = await axios.get(`${API_URL}/organizer/stats`, {
+    headers: getAuthHeader(),
+  });
   return response.data;
 };

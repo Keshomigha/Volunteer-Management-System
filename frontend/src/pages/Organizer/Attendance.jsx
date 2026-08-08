@@ -1,40 +1,95 @@
-import { useState } from 'react';
-import { CheckSquare, Users } from 'lucide-react';
-
-const EVENTS = [
-  'Beach Cleanup Drive',
-  'Tech Workshop for Youth',
-  'Tree Planting Campaign',
-  'Food Distribution',
-];
-
-const VOLUNTEERS_BY_EVENT = {
-  'Beach Cleanup Drive':     ['Ashan Perera', 'Kavya Raj', 'Sanduni Herath', 'Kasun Mendis', 'Lahiru Fernando'],
-  'Tech Workshop for Youth': ['Nimasha Silva', 'Sanduni Herath', 'Dilshan Wickramasinghe'],
-  'Tree Planting Campaign':  ['Dilshan Wickramasinghe', 'Kasun Mendis', 'Ashan Perera', 'Tharushi Jayawardena'],
-  'Food Distribution':       ['Kavya Raj', 'Lahiru Fernando', 'Nimasha Silva'],
-};
+import { useState, useEffect } from 'react';
+import { CheckSquare, Users, CheckCircle } from 'lucide-react';
+import { getMyEvents } from '../../services/eventService';
+import { getAttendeesForEvent, bulkMarkAttendance } from '../../services/attendanceService';
 
 const Attendance = () => {
-  const [selectedEvent, setSelectedEvent] = useState(EVENTS[0]);
+  const [eventsList, setEventsList] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState('');
+  const [volunteers, setVolunteers] = useState([]);
   const [attendance, setAttendance] = useState({});
+  const [toastMessage, setToastMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const volunteers = VOLUNTEERS_BY_EVENT[selectedEvent] || [];
-  const presentCount = volunteers.filter((v) => attendance[`${selectedEvent}-${v}`]).length;
+  // 1. Load active/approved events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const eventsData = await getMyEvents();
+        const approved = eventsData.filter(e => e.approvalStatus === 'Approved');
+        setEventsList(approved);
+        if (approved.length > 0) {
+          setSelectedEvent(approved[0].id);
+        }
+      } catch (err) {
+        console.error("Error loading events for attendance:", err);
+      }
+    };
+    fetchEvents();
+  }, []);
 
-  const toggle = (volunteer) => {
-    const key = `${selectedEvent}-${volunteer}`;
-    setAttendance((prev) => ({ ...prev, [key]: !prev[key] }));
+  // 2. Load approved volunteers for selected event
+  useEffect(() => {
+    if (!selectedEvent) return;
+
+    const fetchAttendees = async () => {
+      setLoading(true);
+      try {
+        const data = await getAttendeesForEvent(selectedEvent);
+        setVolunteers(data);
+
+        const attendeeRecords = {};
+        data.forEach(v => {
+          attendeeRecords[v.userId] = v.status === 'Present';
+        });
+        setAttendance(attendeeRecords);
+      } catch (err) {
+        console.error("Error loading event attendees:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAttendees();
+  }, [selectedEvent]);
+
+  const presentCount = volunteers.filter((v) => attendance[v.userId]).length;
+
+  const toggle = (userId) => {
+    setAttendance((prev) => ({ ...prev, [userId]: !prev[userId] }));
   };
 
   const markAll = (value) => {
     const updates = {};
-    volunteers.forEach((v) => { updates[`${selectedEvent}-${v}`] = value; });
+    volunteers.forEach((v) => { updates[v.userId] = value; });
     setAttendance((prev) => ({ ...prev, ...updates }));
+  };
+
+  const handleSaveAttendance = async () => {
+    try {
+      const records = volunteers.map(v => ({
+        userId: v.userId,
+        status: attendance[v.userId] ? 'Present' : 'Absent'
+      }));
+      await bulkMarkAttendance(selectedEvent, records);
+      setToastMessage('Attendance saved successfully!');
+      setTimeout(() => setToastMessage(''), 2500);
+    } catch (err) {
+      console.error("Error saving attendance:", err);
+      alert(err.response?.data?.message || err.message || "Failed to save attendance");
+    }
   };
 
   return (
     <div>
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-teal-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-bounce">
+          <CheckCircle className="w-5 h-5" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Attendance</h1>
         <p className="text-gray-500 text-md mt-0.5">Mark volunteer attendance for each event</p>
@@ -50,7 +105,7 @@ const Attendance = () => {
             text-gray-700 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100
             transition-all bg-gray-50"
         >
-          {EVENTS.map((e) => <option key={e} value={e}>{e}</option>)}
+          {eventsList.map((e) => <option key={e.id} value={e.id}>{e.title}</option>)}
         </select>
       </div>
 
@@ -106,27 +161,30 @@ const Attendance = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {volunteers.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={3} className="text-center py-12 text-gray-400 text-sm">
+                    Loading attendees...
+                  </td>
+                </tr>
+              ) : volunteers.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="text-center py-12 text-gray-400 text-sm">
                     No approved volunteers for this event
                   </td>
                 </tr>
               ) : volunteers.map((volunteer) => {
-                const key = `${selectedEvent}-${volunteer}`;
-                const isPresent = !!attendance[key];
+                const isPresent = !!attendance[volunteer.userId];
                 return (
                   <tr
-                    key={volunteer}
-                    onClick={() => toggle(volunteer)}
-                    className={`cursor-pointer transition-colors ${
-                      isPresent ? 'bg-green-50 hover:bg-green-100' : 'hover:bg-gray-50'
-                    }`}
+                    key={volunteer.userId}
+                    onClick={() => toggle(volunteer.userId)}
+                    className={`cursor-pointer transition-colors ${isPresent ? 'bg-green-50 hover:bg-green-100' : 'hover:bg-gray-50'
+                      }`}
                   >
                     <td className="px-5 py-4">
-                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                        isPresent ? 'bg-cyan-500 border-cyan-500' : 'border-gray-300'
-                      }`}>
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${isPresent ? 'bg-cyan-500 border-cyan-500' : 'border-gray-300'
+                        }`}>
                         {isPresent && (
                           <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -137,17 +195,16 @@ const Attendance = () => {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-cyan-600 text-xs font-bold">{volunteer.charAt(0)}</span>
+                          <span className="text-cyan-600 text-xs font-bold">{(volunteer.name || '').charAt(0)}</span>
                         </div>
                         <span className={`text-sm font-medium ${isPresent ? 'text-gray-800' : 'text-gray-600'}`}>
-                          {volunteer}
+                          {volunteer.name}
                         </span>
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                        isPresent ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${isPresent ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                        }`}>
                         {isPresent ? 'Present' : 'Absent'}
                       </span>
                     </td>
@@ -158,12 +215,13 @@ const Attendance = () => {
           </table>
         </div>
 
-        {volunteers.length > 0 && (
+        {volunteers.length > 0 && !loading && (
           <div className="px-5 py-4 border-t border-gray-100 flex justify-end">
             <button
+              onClick={handleSaveAttendance}
               className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white
                 bg-gradient-to-r from-cyan-400 to-blue-500
-                hover:from-cyan-500 hover:to-blue-600 transition-all"
+                hover:from-cyan-500 hover:to-blue-600 transition-all border-none cursor-pointer"
             >
               Save Attendance
             </button>
